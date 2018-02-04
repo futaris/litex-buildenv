@@ -127,6 +127,15 @@ static void help_output1(void)
 }
 #endif
 
+#ifdef CSR_VGA_OUT0_BASE
+static void help_vga0(void)
+{
+	wputs("vga0 commands");
+	wputs("  vga0 on                     - enable vga0");
+	wputs("  vga0 off                    - disable vga0");
+}
+#endif
+
 #ifdef CSR_HDMI_IN0_BASE
 static void help_input0(void)
 {
@@ -208,6 +217,10 @@ static void ci_help(void)
 #endif
 #ifdef CSR_HDMI_OUT1_BASE
 	help_output1();
+	wputs("");
+#endif
+#ifdef CSR_VGA_OUT0_BASE
+	help_vga0();
 	wputs("");
 #endif
 #ifdef CSR_HDMI_IN0_BASE
@@ -412,6 +425,25 @@ static void status_short_print(void)
 		wprintf("off ");
 #endif
 
+#ifdef CSR_VGA_OUT0_BASE
+	wprintf("vga0: ");
+	if(vga_out0_core_initiator_enable_read()) {
+		vga_out0_core_underflow_enable_write(1);
+		vga_out0_core_underflow_update_write(1);
+		underflows = vga_out0_core_underflow_counter_read();
+		wprintf(
+			"%dx%d@" REFRESH_RATE_PRINTF "Hz %s (uf:%d), ",
+			processor_h_active,
+			processor_v_active,
+			REFRESH_RATE_PRINTF_ARGS(processor_refresh),
+			processor_get_source_name(processor_vga_out0_source),
+			underflows);
+		vga_out0_core_underflow_enable_write(0);
+		vga_out0_core_underflow_enable_write(1);
+	} else
+		wprintf("off, ");
+#endif
+
 	wprintf("\nstatus2: ");
 	wprintf("EDID: ");
 	wprintf("%dx%d@" REFRESH_RATE_PRINTF "Hz/",
@@ -525,6 +557,26 @@ static void status_print(void)
 	wputchar('\n');
 #endif
 
+#ifdef CSR_VGA_OUT0_BASE
+	wprintf("vga0: ");
+	if(vga_out0_core_initiator_enable_read()) {
+		vga_out0_core_underflow_enable_write(1);
+		vga_out0_core_underflow_update_write(1);
+		underflows = vga_out0_core_underflow_counter_read();
+		wprintf(
+			"%dx%d@" REFRESH_RATE_PRINTF "Hz from %s (underflows: %d)",
+			processor_h_active,
+			processor_v_active,
+			REFRESH_RATE_PRINTF_ARGS(processor_refresh),
+			processor_get_source_name(processor_vga_out0_source),
+			underflows);
+		vga_out0_core_underflow_enable_write(0);
+		vga_out0_core_underflow_enable_write(1);
+	} else
+		wprintf("off");
+	wputchar('\n');
+#endif
+
 	wprintf("EDID primary mode:   ");
 	wprintf("%dx%d@" REFRESH_RATE_PRINTF "Hz",
 		processor_h_active,
@@ -623,6 +675,17 @@ static void status_service(void)
 #endif
 #endif
 
+#ifdef CSR_VGA_OUT0_BASE
+#ifndef VGA_OUT0_MNEMONIC
+//#warning "Missing VGA OUT0 mnemonic!"
+#define VGA_OUT0_MNEMONIC ""
+#endif
+#ifndef VGA_OUT0_DESCRIPTION
+//#warning "Missing VGA OUT0 description!"
+#define VGA_OUT0_DESCRIPTION ""
+#endif
+#endif
+
 static void video_matrix_list(void)
 {
 	wprintf("Video sources:\n");
@@ -645,6 +708,10 @@ static void video_matrix_list(void)
 #ifdef CSR_HDMI_OUT1_BASE
 	wprintf("output1 (1): %s\n", HDMI_OUT1_MNEMONIC);
 	wputs(HDMI_OUT1_DESCRIPTION);
+#endif
+#ifdef CSR_VGA_OUT0_BASE
+	wprintf("vga0 (0): %s\n", VGA_OUT0_MNEMONIC);
+	wputs(VGA_OUT0_DESCRIPTION);
 #endif
 #ifdef ENCODER_BASE
 	wprintf("encoder (e):\n");
@@ -670,6 +737,12 @@ static void video_matrix_connect(int source, int sink)
 				processor_set_hdmi_out1_source(source);
 #else
 				wprintf("hdmi_out1 is missing.\n");
+#endif
+			else if(sink == VIDEO_OUT_VGA_OUT0)
+#ifdef CSR_VGA_OUT0_BASE
+				processor_set_vga_out0_source(source);
+#else
+				wprintf("vga_out0 is missing.\n");
 #endif
 			processor_update();
 		}
@@ -942,6 +1015,20 @@ void output1_off(void)
 }
 #endif
 
+#ifdef CSR_VGA_OUT0_BASE
+void vga0_on(void)
+{
+	wprintf("Enabling vga0\n");
+	vga_out0_core_initiator_enable_write(1);
+}
+
+void vga0_off(void)
+{
+	wprintf("Disabling vga0\n");
+	vga_out0_core_initiator_enable_write(0);
+}
+#endif
+
 #ifdef ENCODER_BASE
 void encoder_on(void)
 {
@@ -1037,6 +1124,10 @@ void ci_service(void)
 		else if(strcmp(token, "output1") == 0)
 			help_output1();
 #endif
+#ifdef CSR_VGA_OUT0_BASE
+		else if(strcmp(token, "vga0") == 0)
+			help_vga0();
+#endif
 #ifdef CSR_HDMI_IN0_BASE
 		else if(strcmp(token, "input0") == 0)
 			help_input0();
@@ -1096,6 +1187,9 @@ void ci_service(void)
 			else if((strcmp(token, "output1") == 0) || (strcmp(token, "1") == 0)) {
 				sink = VIDEO_OUT_HDMI_OUT1;
 			}
+			else if((strcmp(token, "vga0") == 0)) {
+				sink = VIDEO_OUT_VGA_OUT0;
+			}
 			else if((strcmp(token, "encoder") == 0) || (strcmp(token, "e") == 0)) {
 				sink = VIDEO_OUT_ENCODER;
 			}
@@ -1154,6 +1248,17 @@ void ci_service(void)
 			output1_off();
 		else
 			help_output1();
+	}
+#endif
+#ifdef CSR_VGA_OUT0_BASE
+	else if((strcmp(token, "vga0") == 0)) {
+		token = get_token(&str);
+		if(strcmp(token, "on") == 0)
+			vga0_on();
+		else if(strcmp(token, "off") == 0)
+			vga0_off();
+		else
+			help_vga0();
 	}
 #endif
 #ifdef CSR_HDMI_IN0_BASE

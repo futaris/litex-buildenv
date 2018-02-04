@@ -14,6 +14,11 @@ void output1_on(void);
 void output1_off(void);
 #endif
 
+#ifdef CSR_VGA_OUT0_BASE
+void vga0_on(void);
+void vga0_off(void);
+#endif
+
 #ifdef CSR_HDMI_IN0_BASE
 void input0_on(void);
 void input0_off(void);

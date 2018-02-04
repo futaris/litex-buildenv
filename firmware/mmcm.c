@@ -31,6 +31,29 @@ MMCM hdmi_out0_driver_clocking_mmcm = {
 };
 #endif
 
+#ifdef CSR_VGA_OUT0_DRIVER_CLOCKING_MMCM_RESET_ADDR
+void vga_out0_driver_clocking_mmcm_write(int adr, int data)
+{
+	vga_out0_driver_clocking_mmcm_adr_write(adr);
+	vga_out0_driver_clocking_mmcm_dat_w_write(data);
+	vga_out0_driver_clocking_mmcm_write_write(1);
+	while(!vga_out0_driver_clocking_mmcm_drdy_read());
+}
+
+int vga_out0_driver_clocking_mmcm_read(int adr)
+{
+	vga_out0_driver_clocking_mmcm_adr_write(adr);
+	vga_out0_driver_clocking_mmcm_read_write(1);
+	while(!vga_out0_driver_clocking_mmcm_drdy_read());
+	return vga_out0_driver_clocking_mmcm_dat_r_read();
+}
+
+MMCM vga_out0_driver_clocking_mmcm = {
+	.write = &vga_out0_driver_clocking_mmcm_write,
+	.read = &vga_out0_driver_clocking_mmcm_read,
+};
+#endif
+
 #ifdef CSR_HDMI_IN0_CLOCKING_MMCM_RESET_ADDR
 void hdmi_in0_clocking_mmcm_write(int adr, int data)
 {
@@ -111,6 +134,11 @@ void mmcm_dump_all(void)
 #ifdef CSR_HDMI_OUT0_DRIVER_CLOCKING_MMCM_RESET_ADDR
 	printf("framebuffer MMCM:\n");
 	mmcm_dump(&hdmi_out0_driver_clocking_mmcm);
+	printf("\n");
+#endif
+#ifdef CSR_VGA_OUT0_DRIVER_CLOCKING_MMCM_RESET_ADDR
+	printf("framebuffer MMCM:\n");
+	mmcm_dump(&vga_out0_driver_clocking_mmcm);
 	printf("\n");
 #endif
 #ifdef CSR_HDMI_IN0_CLOCKING_MMCM_RESET_ADDR

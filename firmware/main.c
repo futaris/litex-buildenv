@@ -138,6 +138,14 @@ int main(void)
 	}
 #endif
 
+#ifdef CSR_VGA_OUT0_BASE
+	vga0_off();
+	if (1) { // (config_get(CONFIG_KEY_OUTPUT0_ENABLED)) {
+		vga0_on();
+		processor_set_vga_out0_source(VIDEO_IN_PATTERN); // config_get(CONFIG_KEY_OUTPUT0_SOURCE));
+	}
+#endif
+
 #ifdef CSR_HDMI_OUT1_I2C_W_ADDR
 	hdmi_out1_i2c_init();
 #endif

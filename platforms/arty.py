@@ -98,6 +98,18 @@ _io = [
         Subsignal("crs", Pins("G14")),
         IOStandard("LVCMOS33")
     ),
+
+    ("vga_out", 0,
+        Subsignal("clk", Pins("T13")),
+        Subsignal("psave_n", Pins("U13")),
+        Subsignal("hsync_n", Pins("U14")),
+        Subsignal("vsync_n", Pins("V14")),
+        Subsignal("r", Pins("E15 E16 D15 C15")),
+        Subsignal("g", Pins("U12 V12 V10 V11")),
+        Subsignal("b", Pins("J17 J18 K15 J15")),
+        IOStandard("LVCMOS33")
+    ),
+
 ]
 
 

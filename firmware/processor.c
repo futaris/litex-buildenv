@@ -427,6 +427,27 @@ static void fb_clkgen_write(int m, int d)
 	/* clkout1_driver_clocking_divide = 2 */
 	hdmi_out0_driver_clocking_mmcm_write(0xa, 0x1000 | (1<<6) | 1);
 }
+#elif CSR_VGA_OUT0_DRIVER_CLOCKING_MMCM_RESET_ADDR
+// Artix-7 MMCM clocking VGA
+static void fb_clkgen_write(int m, int d)
+{
+	/* clkfbout_mult = m */
+	if(m%2)
+		vga_out0_driver_clocking_mmcm_write(0x14, 0x1000 | ((m/2)<<6) | (m/2 + 1));
+	else
+		vga_out0_driver_clocking_mmcm_write(0x14, 0x1000 | ((m/2)<<6) | m/2);
+	/* divclk_divide = d */
+	if (d == 1)
+		vga_out0_driver_clocking_mmcm_write(0x16, 0x1000);
+	else if(d%2)
+		vga_out0_driver_clocking_mmcm_write(0x16, ((d/2)<<6) | (d/2 + 1));
+	else
+		vga_out0_driver_clocking_mmcm_write(0x16, ((d/2)<<6) | d/2);
+	/* clkout0_divide = 10 */
+	vga_out0_driver_clocking_mmcm_write(0x8, 0x1000 | (5<<6) | 5);
+	/* clkout1_driver_clocking_divide = 2 */
+	vga_out0_driver_clocking_mmcm_write(0xa, 0x1000 | (1<<6) | 1);
+}
 #else
 
 // Unsupported clocking!@?
@@ -462,6 +483,12 @@ static void fb_get_clock_md(unsigned int pixel_clock, unsigned int *best_m, unsi
 	ideal_d = 10000;
 	max_d = 128;
 	max_m = 128;
+#elif CSR_VGA_OUT0_DRIVER_CLOCKING_MMCM_RESET_ADDR
+	// Artix 7
+	pixel_clock = pixel_clock * 10;
+	ideal_d = 10000;
+	max_d = 128;
+	max_m = 128;
 #else
 	assert(false);
 	return;
@@ -490,6 +517,16 @@ static void fb_get_clock_md(unsigned int pixel_clock, unsigned int *best_m, unsi
 			hdmi_out0_driver_clocking_clkfx_md_max_1000_read());
 	}
 #endif
+
+#ifdef CSR_VGA_OUT0_DRIVER_CLOCKING_PLL_RESET_ADDR
+	unsigned int md1000 = (bm * 1000) / bd;
+	if (md1000 > vga_out0_driver_clocking_clkfx_md_max_1000_read()) {
+		wprintf(
+			"WARNING: md1000 (%d) > (%d)\n",
+			md1000,
+			vga_out0_driver_clocking_clkfx_md_max_1000_read());
+	}
+#endif
 }
 
 static void fb_set_clock(unsigned int pixel_clock)
@@ -506,6 +543,14 @@ static void fb_set_clock(unsigned int pixel_clock)
 	while(!(hdmi_out0_driver_clocking_status_read() & CLKGEN_STATUS_LOCKED));
 #elif CSR_HDMI_OUT0_DRIVER_CLOCKING_MMCM_RESET_ADDR
 	fb_clkgen_write(clock_m, clock_d);
+#elif CSR_VGA_OUT0_DRIVER_CLOCKING_PLL_RESET_ADDR
+	fb_clkgen_write(0x1, clock_d-1);
+	fb_clkgen_write(0x3, clock_m-1);
+	vga_out0_driver_clocking_send_go_write(1);
+	while(!(vga_out0_driver_clocking_status_read() & CLKGEN_STATUS_PROGDONE));
+	while(!(vga_out0_driver_clocking_status_read() & CLKGEN_STATUS_LOCKED));
+#elif CSR_VGA_OUT0_DRIVER_CLOCKING_MMCM_RESET_ADDR
+	fb_clkgen_write(clock_m, clock_d);
 #endif
 }
 
@@ -514,6 +559,7 @@ static void fb_set_mode(const struct video_timing *mode)
 {
 	unsigned int hdmi_out0_enabled;
 	unsigned int hdmi_out1_enabled;
+	unsigned int vga_out0_enabled;
 
 #ifdef CSR_HDMI_OUT0_BASE
 	if (hdmi_out0_core_initiator_enable_read()) {
@@ -553,6 +599,25 @@ static void fb_set_mode(const struct video_timing *mode)
 	hdmi_out1_core_initiator_enable_write(hdmi_out1_enabled);
 #endif
 
+#ifdef CSR_VGA_OUT0_BASE
+	if (vga_out0_core_initiator_enable_read()) {
+		vga_out0_enabled = 1;
+		vga_out0_core_initiator_enable_write(0);
+	}
+	vga_out0_core_initiator_hres_write(mode->h_active);
+	vga_out0_core_initiator_hsync_start_write(mode->h_active + mode->h_sync_offset);
+	vga_out0_core_initiator_hsync_end_write(mode->h_active + mode->h_sync_offset + mode->h_sync_width);
+	vga_out0_core_initiator_hscan_write(mode->h_active + mode->h_blanking);
+	vga_out0_core_initiator_vres_write(mode->v_active);
+	vga_out0_core_initiator_vsync_start_write(mode->v_active + mode->v_sync_offset);
+	vga_out0_core_initiator_vsync_end_write(mode->v_active + mode->v_sync_offset + mode->v_sync_width);
+	vga_out0_core_initiator_vscan_write(mode->v_active + mode->v_blanking);
+
+	vga_out0_core_initiator_length_write(mode->h_active*mode->v_active*2);
+
+	vga_out0_core_initiator_enable_write(vga_out0_enabled);
+#endif
+
 	fb_set_clock(mode->pixel_clock);
 }
 
@@ -581,6 +646,7 @@ void processor_init(int sec_mode)
 {
 	processor_hdmi_out0_source = VIDEO_IN_HDMI_IN0;
 	processor_hdmi_out1_source = VIDEO_IN_HDMI_IN0;
+	processor_vga_out0_source = VIDEO_IN_PATTERN;
 	processor_encoder_source = VIDEO_IN_HDMI_IN0;
 #ifdef ENCODER_BASE
 		encoder_enable(0);
@@ -616,11 +682,20 @@ void processor_start(int mode)
 #ifdef CSR_HDMI_OUT1_BASE
 	hdmi_out1_core_initiator_enable_write(0);
 #endif
+#ifdef CSR_VGA_OUT0_BASE
+	vga_out0_core_initiator_enable_write(0);
+#endif
 #ifdef CSR_HDMI_OUT0_DRIVER_CLOCKING_MMCM_RESET_ADDR
 	hdmi_out0_driver_clocking_mmcm_reset_write(1);
 #endif
 #ifdef CSR_HDMI_OUT0_DRIVER_CLOCKING_PLL_RESET_ADDR
 	hdmi_out0_driver_clocking_pll_reset_write(1);
+#endif
+#ifdef CSR_VGA_OUT0_DRIVER_CLOCKING_MMCM_RESET_ADDR
+	vga_out0_driver_clocking_mmcm_reset_write(1);
+#endif
+#ifdef CSR_VGA_OUT0_DRIVER_CLOCKING_PLL_RESET_ADDR
+	vga_out0_driver_clocking_pll_reset_write(1);
 #endif
 #ifdef CSR_HDMI_IN0_BASE
 	hdmi_in0_edid_hpd_en_write(0);
@@ -647,6 +722,11 @@ void processor_start(int mode)
 	mmcm_config_for_clock(&hdmi_out0_driver_clocking_mmcm, m->pixel_clock);
 #endif
 
+#ifdef CSR_VGA_OUT0_DRIVER_CLOCKING_PLL_RESET_ADDR
+	pll_config_for_clock(m->pixel_clock);
+#elif CSR_VGA_OUT0_DRIVER_CLOCKING_MMCM_RESET_ADDR
+	mmcm_config_for_clock(&vga_out0_driver_clocking_mmcm, m->pixel_clock);
+#endif
 	fb_set_mode(m);
 	edid_set_mode(m, sec_mode);
 
@@ -668,6 +748,9 @@ void processor_start(int mode)
 #ifdef CSR_HDMI_OUT1_BASE
 	hdmi_out1_core_initiator_enable_write(1);
 #endif
+#ifdef CSR_VGA_OUT0_BASE
+	vga_out0_core_initiator_enable_write(1);
+#endif
 #ifdef CSR_HDMI_IN0_BASE
 	hdmi_in0_edid_hpd_en_write(1);
 #endif
@@ -682,6 +765,10 @@ void processor_set_hdmi_out0_source(int source) {
 
 void processor_set_hdmi_out1_source(int source) {
 	processor_hdmi_out1_source = source;
+}
+
+void processor_set_vga_out0_source(int source) {
+	processor_vga_out0_source = source;
 }
 
 void processor_set_encoder_source(int source) {
@@ -725,6 +812,20 @@ void processor_update(void)
 #endif
 	if(processor_hdmi_out1_source == VIDEO_IN_PATTERN)
 		hdmi_out1_core_initiator_base_write(pattern_framebuffer_base());
+#endif
+
+#ifdef CSR_VGA_OUT0_BASE
+	/*  vga_out0 */
+#ifdef CSR_HDMI_IN0_BASE
+	if(processor_vga_out0_source == VIDEO_IN_HDMI_IN0)
+		vga_out0_core_initiator_base_write(hdmi_in0_framebuffer_base(hdmi_in0_fb_index));
+#endif
+#ifdef CSR_HDMI_IN1_BASE
+	if(processor_hdmi_out0_source == VIDEO_IN_HDMI_IN1)
+		vga_out0_core_initiator_base_write(hdmi_in1_framebuffer_base(hdmi_in1_fb_index));
+#endif
+	if(processor_hdmi_out0_source == VIDEO_IN_PATTERN)
+		vga_out0_core_initiator_base_write(pattern_framebuffer_base());
 #endif
 
 

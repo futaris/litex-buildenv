@@ -53,6 +53,7 @@ enum {
 enum {
 	VIDEO_OUT_HDMI_OUT0=0,
 	VIDEO_OUT_HDMI_OUT1,
+	VIDEO_OUT_VGA_OUT0,
 	VIDEO_OUT_ENCODER
 };
 
@@ -63,6 +64,7 @@ int processor_v_active;
 int processor_refresh;
 int processor_hdmi_out0_source;
 int processor_hdmi_out1_source;
+int processor_vga_out0_source;
 int processor_encoder_source;
 char processor_buffer[16];
 
@@ -72,6 +74,7 @@ void processor_init(int sec_mode);
 void processor_start(int mode);
 void processor_set_hdmi_out0_source(int source);
 void processor_set_hdmi_out1_source(int source);
+void processor_set_vga_out0_source(int source);
 void processor_set_encoder_source(int source);
 char* processor_get_source_name(int source);
 void processor_update(void);
