@@ -736,11 +736,15 @@ void processor_start(int mode)
 #ifdef CSR_HDMI_IN1_BASE
 	hdmi_in1_init_video(m->h_active, m->v_active);
 #endif
-
 #ifdef CSR_HDMI_OUT0_DRIVER_CLOCKING_PLL_RESET_ADDR
 	hdmi_out0_driver_clocking_pll_reset_write(0);
 #elif CSR_HDMI_OUT0_DRIVER_CLOCKING_MMCM_RESET_ADDR
 	hdmi_out0_driver_clocking_mmcm_reset_write(0);
+#endif
+#ifdef CSR_VGA_OUT0_DRIVER_CLOCKING_PLL_RESET_ADDR
+	vga_out0_driver_clocking_pll_reset_write(0);
+#elif CSR_VGA_OUT0_DRIVER_CLOCKING_MMCM_RESET_ADDR
+	vga_out0_driver_clocking_mmcm_reset_write(0);
 #endif
 #ifdef CSR_HDMI_OUT0_BASE
 	hdmi_out0_core_initiator_enable_write(1);

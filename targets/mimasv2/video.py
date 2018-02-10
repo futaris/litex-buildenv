@@ -63,8 +63,8 @@ class VideoSoC(BaseSoC):
             self.crg.cd_sys.clk,
             self.vga_out0.driver.clocking.cd_pix.clk)
 
-        for name, value in sorted(self.platform.vga_infos.items()):
-            self.add_constant(name, value)
+#        for name, value in sorted(self.platform.vga_infos.items()):
+#            self.add_constant(name, value)
 
 
 SoC = VideoSoC

@@ -27,7 +27,7 @@ static const unsigned short int pll_config_10x[32] = {
 
 static void program_data(const unsigned short *data)
 {
-#if defined(CSR_HDMI_OUT0_BASE) || defined(CSR_HDMI_IN0_BASE) || defined(CSR_HDMI_IN1_BASE)
+#if defined(CSR_VGA_OUT0_BASE) || defined(CSR_HDMI_OUT0_BASE) || defined(CSR_HDMI_IN0_BASE) || defined(CSR_HDMI_IN1_BASE)
 	int i;
 #endif
 	/*
@@ -35,6 +35,14 @@ static void program_data(const unsigned short *data)
 	 * so we start at word 6.
 	 * PLLs also seem to dislike any write to the last words.
 	 */
+#ifdef CSR_VGA_OUT0_DRIVER_CLOCKING_PLL_RESET_ADDR
+	for(i=6;i<32-5;i++) {
+		vga_out0_driver_clocking_pll_adr_write(i);
+		vga_out0_driver_clocking_pll_dat_w_write(data[i]);
+		vga_out0_driver_clocking_pll_write_write(1);
+		while(!vga_out0_driver_clocking_pll_drdy_read());
+	}
+#endif
 #ifdef CSR_HDMI_OUT0_DRIVER_CLOCKING_PLL_RESET_ADDR
 	for(i=6;i<32-5;i++) {
 		hdmi_out0_driver_clocking_pll_adr_write(i);
@@ -85,8 +93,18 @@ void pll_config_for_clock(int freq)
 
 void pll_dump(void)
 {
-#if defined(CSR_HDMI_OUT0_BASE) || defined(CSR_HDMI_IN0_BASE) || defined(CSR_HDMI_IN1_BASE)
+#if defined(CSR_VGA_OUT0_BASE) || defined(CSR_HDMI_OUT0_BASE) || defined(CSR_HDMI_IN0_BASE) || defined(CSR_HDMI_IN1_BASE)
 	int i;
+#endif
+#ifdef CSR_VGA_OUT0_DRIVER_CLOCKING_PLL_RESET_ADDR
+	wprintf("framebuffer PLL:\n");
+	for(i=0;i<32;i++) {
+		vga_out0_driver_clocking_pll_adr_write(i);
+		vga_out0_driver_clocking_pll_read_write(1);
+		while(!vga_out0_driver_clocking_pll_drdy_read());
+		wprintf("%04x ", vga_out0_driver_clocking_pll_dat_r_read());
+	}
+	wputchar('\n');
 #endif
 #ifdef CSR_HDMI_OUT0_DRIVER_CLOCKING_PLL_RESET_ADDR
 	wprintf("framebuffer PLL:\n");
