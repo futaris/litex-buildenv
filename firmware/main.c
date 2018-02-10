@@ -107,11 +107,16 @@ int main(void)
 	}
 #endif
 
+	wputs("processor starting\n");
 	// FIXME: Explain why secondary res is in _init and primary in _start
 	processor_init(config_get(CONFIG_KEY_RES_SECONDARY));
+	wputs("processor_init done\n");
 	processor_update();
+	wputs("processor_update done\n");
 	processor_start(config_get(CONFIG_KEY_RES_PRIMARY));
+	wputs("processor_start done\n");
 	processor_service();
+	wputs("processor service and all stuff done\n");
 
 #ifdef CSR_HDMI_IN0_BASE
 	input0_off();
@@ -138,13 +143,18 @@ int main(void)
 	}
 #endif
 
+	wputs("About to VGA0...\n");	
 #ifdef CSR_VGA_OUT0_BASE
 	vga0_off();
+	wputs("vga0_off done...\n");
 	if (1) { // (config_get(CONFIG_KEY_OUTPUT0_ENABLED)) {
 		vga0_on();
+		wputs("vga0_on done...\n");
 		processor_set_vga_out0_source(VIDEO_IN_PATTERN); // config_get(CONFIG_KEY_OUTPUT0_SOURCE));
+		wputs("processor_set_vga_out0_source done...\n");
 	}
 #endif
+	wputs("Did VGA0...\n");
 
 #ifdef CSR_HDMI_OUT1_I2C_W_ADDR
 	hdmi_out1_i2c_init();

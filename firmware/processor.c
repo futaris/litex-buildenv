@@ -483,9 +483,14 @@ static void fb_get_clock_md(unsigned int pixel_clock, unsigned int *best_m, unsi
 	ideal_d = 10000;
 	max_d = 128;
 	max_m = 128;
+#elif CSR_VGA_OUT0_DRIVER_CLOCKING_PLL_RESET_ADDR
+	// Spartan 6
+	ideal_d = 5000;
+	max_d = 256;
+	max_m = 256;
 #elif CSR_VGA_OUT0_DRIVER_CLOCKING_MMCM_RESET_ADDR
 	// Artix 7
-	pixel_clock = pixel_clock * 10;
+	pixel_clock = pixel_clock;
 	ideal_d = 10000;
 	max_d = 128;
 	max_m = 128;
@@ -533,7 +538,9 @@ static void fb_set_clock(unsigned int pixel_clock)
 {
 	unsigned int clock_m, clock_d;
 
+	wputs("about to fb_get_clock_md\n");
 	fb_get_clock_md(pixel_clock, &clock_m, &clock_d);
+	wputs("did fb_get_clock_md\n");
 
 #ifdef CSR_HDMI_OUT0_DRIVER_CLOCKING_PLL_RESET_ADDR
 	fb_clkgen_write(0x1, clock_d-1);
@@ -619,6 +626,7 @@ static void fb_set_mode(const struct video_timing *mode)
 #endif
 
 	fb_set_clock(mode->pixel_clock);
+	wputs("fb_set_clock done\n");
 }
 
 static void edid_set_mode(const struct video_timing *mode, const struct video_timing *sec_mode)
@@ -683,6 +691,7 @@ void processor_start(int mode)
 	hdmi_out1_core_initiator_enable_write(0);
 #endif
 #ifdef CSR_VGA_OUT0_BASE
+	wputs("about to vga_out0_core_initiator_enable_write(0)\n");
 	vga_out0_core_initiator_enable_write(0);
 #endif
 #ifdef CSR_HDMI_OUT0_DRIVER_CLOCKING_MMCM_RESET_ADDR
@@ -692,9 +701,11 @@ void processor_start(int mode)
 	hdmi_out0_driver_clocking_pll_reset_write(1);
 #endif
 #ifdef CSR_VGA_OUT0_DRIVER_CLOCKING_MMCM_RESET_ADDR
+	wputs("about to vga_out0_driver_clocking_mmcm_reset_write(1)\n");
 	vga_out0_driver_clocking_mmcm_reset_write(1);
 #endif
 #ifdef CSR_VGA_OUT0_DRIVER_CLOCKING_PLL_RESET_ADDR
+	wputs("about to vga_out0_driver_clocking_pll_reset_write(1)\n");	
 	vga_out0_driver_clocking_pll_reset_write(1);
 #endif
 #ifdef CSR_HDMI_IN0_BASE
@@ -723,8 +734,10 @@ void processor_start(int mode)
 #endif
 
 #ifdef CSR_VGA_OUT0_DRIVER_CLOCKING_PLL_RESET_ADDR
+	wputs("about to pll_config_for_clock()\n");
 	pll_config_for_clock(m->pixel_clock);
 #elif CSR_VGA_OUT0_DRIVER_CLOCKING_MMCM_RESET_ADDR
+	wputs("about to mmcm_config_for_clock()\n");
 	mmcm_config_for_clock(&vga_out0_driver_clocking_mmcm, m->pixel_clock);
 #endif
 	fb_set_mode(m);
@@ -742,8 +755,10 @@ void processor_start(int mode)
 	hdmi_out0_driver_clocking_mmcm_reset_write(0);
 #endif
 #ifdef CSR_VGA_OUT0_DRIVER_CLOCKING_PLL_RESET_ADDR
+	wputs("about to vga_out0_driver_clocking_pll_reset_write(0)\n");	
 	vga_out0_driver_clocking_pll_reset_write(0);
 #elif CSR_VGA_OUT0_DRIVER_CLOCKING_MMCM_RESET_ADDR
+	wputs("about to vga_out0_driver_clocking_mmcm_reset_write(0)\n");	
 	vga_out0_driver_clocking_mmcm_reset_write(0);
 #endif
 #ifdef CSR_HDMI_OUT0_BASE
@@ -753,6 +768,7 @@ void processor_start(int mode)
 	hdmi_out1_core_initiator_enable_write(1);
 #endif
 #ifdef CSR_VGA_OUT0_BASE
+	wputs("about to vga_out0_core_initiator_enable_write(1)\n");
 	vga_out0_core_initiator_enable_write(1);
 #endif
 #ifdef CSR_HDMI_IN0_BASE
