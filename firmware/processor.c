@@ -427,6 +427,16 @@ static void fb_clkgen_write(int m, int d)
 	/* clkout1_driver_clocking_divide = 2 */
 	hdmi_out0_driver_clocking_mmcm_write(0xa, 0x1000 | (1<<6) | 1);
 }
+#elif CSR_VGA_OUT0_DRIVER_CLOCKING_PLL_RESET_ADDR
+// Spartan-6 PLL clocking
+static void fb_clkgen_write(int cmd, int data)
+{
+	int word;
+	word = (data << 2) | cmd;
+	vga_out0_driver_clocking_cmd_data_write(word);
+	vga_out0_driver_clocking_send_cmd_data_write(1);
+	while(vga_out0_driver_clocking_status_read() & CLKGEN_STATUS_BUSY);
+}
 #elif CSR_VGA_OUT0_DRIVER_CLOCKING_MMCM_RESET_ADDR
 // Artix-7 MMCM clocking VGA
 static void fb_clkgen_write(int m, int d)
