@@ -437,7 +437,7 @@ static void fb_clkgen_write(int cmd, int data)
 	vga_out0_driver_clocking_send_cmd_data_write(1);
 	while(vga_out0_driver_clocking_status_read() & CLKGEN_STATUS_BUSY);
 }
-#elif CSR_VGA_OUT0_DRIVER_CLOCKING_MMCM_RESET_ADDR
+#elif 1 // CSR_VGA_OUT0_DRIVER_CLOCKING_MMCM_RESET_ADDR
 // Artix-7 MMCM clocking VGA
 static void fb_clkgen_write(int m, int d)
 {
@@ -500,9 +500,7 @@ static void fb_get_clock_md(unsigned int pixel_clock, unsigned int *best_m, unsi
 	ideal_d = 5000;
 	max_d = 256;
 	max_m = 256;
-#elif CSR_VGA_OUT0_DRIVER_CLOCKING_MMCM_RESET_ADDR
-#endif // DIRTY HACK for elif CSR_VGA_OUT0_DRIVER_CLOCKING_MMCM_RESET_ADDR
-#if 1 // DIRTY HACK for elif CSR_VGA_OUT0_DRIVER_CLOCKING_MMCM_RESET_ADDR
+#elif 1 // CSR_VGA_OUT0_DRIVER_CLOCKING_MMCM_RESET_ADDR
 	// Artix 7
 	ideal_d = 10000;
 	max_d = 128;
@@ -572,7 +570,7 @@ static void fb_set_clock(unsigned int pixel_clock)
 	vga_out0_driver_clocking_send_go_write(1);
 	while(!(vga_out0_driver_clocking_status_read() & CLKGEN_STATUS_PROGDONE));
 	while(!(vga_out0_driver_clocking_status_read() & CLKGEN_STATUS_LOCKED));
-#elif CSR_VGA_OUT0_DRIVER_CLOCKING_MMCM_RESET_ADDR
+#elif 1 // CSR_VGA_OUT0_DRIVER_CLOCKING_MMCM_RESET_ADDR
 	fb_clkgen_write(clock_m, clock_d);
 #endif
 }
@@ -739,7 +737,7 @@ void processor_start(int mode)
 	hdmi_in1_disable();
 	hdmi_in1_clear_framebuffers();
 #endif
-#ifndef SIMULATION
+#if 1 // ndef SIMULATION
 	pattern_fill_framebuffer(m->h_active, m->v_active);
 #endif
 
@@ -752,7 +750,7 @@ void processor_start(int mode)
 #ifdef CSR_VGA_OUT0_DRIVER_CLOCKING_PLL_RESET_ADDR
 	wputs("about to pll_config_for_clock()\n");
 	pll_config_for_clock(m->pixel_clock);
-#elif CSR_VGA_OUT0_DRIVER_CLOCKING_MMCM_RESET_ADDR
+#elif 1 // CSR_VGA_OUT0_DRIVER_CLOCKING_MMCM_RESET_ADDR
 	wputs("about to mmcm_config_for_clock()\n");
 	mmcm_config_for_clock(&vga_out0_driver_clocking_mmcm, m->pixel_clock);
 #endif
@@ -773,7 +771,7 @@ void processor_start(int mode)
 #ifdef CSR_VGA_OUT0_DRIVER_CLOCKING_PLL_RESET_ADDR
 	wputs("about to vga_out0_driver_clocking_pll_reset_write(0)\n");	
 	vga_out0_driver_clocking_pll_reset_write(0);
-#elif CSR_VGA_OUT0_DRIVER_CLOCKING_MMCM_RESET_ADDR
+#elif 1 // CSR_VGA_OUT0_DRIVER_CLOCKING_MMCM_RESET_ADDR
 	wputs("about to vga_out0_driver_clocking_mmcm_reset_write(0)\n");	
 	vga_out0_driver_clocking_mmcm_reset_write(0);
 #endif
@@ -857,10 +855,10 @@ void processor_update(void)
 		vga_out0_core_initiator_base_write(hdmi_in0_framebuffer_base(hdmi_in0_fb_index));
 #endif
 #ifdef CSR_HDMI_IN1_BASE
-	if(processor_hdmi_out0_source == VIDEO_IN_HDMI_IN1)
+	if(processor_vga_out0_source == VIDEO_IN_HDMI_IN1)
 		vga_out0_core_initiator_base_write(hdmi_in1_framebuffer_base(hdmi_in1_fb_index));
 #endif
-	if(processor_hdmi_out0_source == VIDEO_IN_PATTERN)
+	if(processor_vga_out0_source == VIDEO_IN_PATTERN)
 		vga_out0_core_initiator_base_write(pattern_framebuffer_base());
 #endif
 
