@@ -482,6 +482,8 @@ static void fb_get_clock_md(unsigned int pixel_clock, unsigned int *best_m, unsi
 	bm = 1;
 	bd = 0;
 
+	wprintf("calculating div/mul for pixel_clock=%d\n", pixel_clock);
+
 #ifdef CSR_HDMI_OUT0_DRIVER_CLOCKING_PLL_RESET_ADDR
 	// Spartan 6
 	ideal_d = 5000;
@@ -499,12 +501,14 @@ static void fb_get_clock_md(unsigned int pixel_clock, unsigned int *best_m, unsi
 	max_d = 256;
 	max_m = 256;
 #elif CSR_VGA_OUT0_DRIVER_CLOCKING_MMCM_RESET_ADDR
+#endif // DIRTY HACK for elif CSR_VGA_OUT0_DRIVER_CLOCKING_MMCM_RESET_ADDR
+#if 1 // DIRTY HACK for elif CSR_VGA_OUT0_DRIVER_CLOCKING_MMCM_RESET_ADDR
 	// Artix 7
-	pixel_clock = pixel_clock;
 	ideal_d = 10000;
 	max_d = 128;
 	max_m = 128;
 #else
+	wprintf("assert false %d\n", __LINE__);
 	assert(false);
 	return;
 #endif
@@ -521,6 +525,8 @@ static void fb_get_clock_md(unsigned int pixel_clock, unsigned int *best_m, unsi
 		}
 	*best_m = bm;
 	*best_d = bd;
+
+	wprintf("bm=%d, bd=%d, diff_current=%d\n", bm, bd, diff_current);
 
 	/* Check the resultant frequency */
 #ifdef CSR_HDMI_OUT0_DRIVER_CLOCKING_PLL_RESET_ADDR
