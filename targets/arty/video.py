@@ -36,7 +36,7 @@ class VideoSoC(BaseSoC):
         vga_out0_dram_port = self.sdram.crossbar.get_port(
             mode="read",
             dw=dw,
-            cd="vga_out0_pix",
+            cd="pix",
             reverse=True)
 
         self.submodules.vga_out0 = VideoOut(
