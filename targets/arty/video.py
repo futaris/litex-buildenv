@@ -77,9 +77,13 @@ class VideoSoCDebug(VideoSoC):
         # # #
 
         # leds
-        #pix_counter = Signal(32)
-        #self.sync.vga_out0_pix += pix_counter.eq(pix_counter + 1)
-        #self.comb += platform.request("user_led", 0).eq(pix_counter[26])
+        pix_counter = Signal(32)
+        self.sync.vga_out0_pix += pix_counter.eq(pix_counter + 1)
+        self.comb += platform.request("user_led", 0).eq(pix_counter[26])
+
+        self.comb += platform.request("user_led", 1).eq(self.vga_out0.core.timing.source.valid)
+        self.comb += platform.request("user_led", 2).eq(self.vga_out0.core.timing.source.de)
+        self.comb += platform.request("user_led", 3).eq(self.vga_out0.core.dma.source.valid)
 
     def do_exit(self, vns):
         self.analyzer.export_csv(vns, "test/analyzer.csv")
