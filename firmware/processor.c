@@ -497,12 +497,12 @@ static void fb_get_clock_md(unsigned int pixel_clock, unsigned int *best_m, unsi
 	max_m = 128;
 #elif CSR_VGA_OUT0_DRIVER_CLOCKING_PLL_RESET_ADDR
 	// Spartan 6
-	ideal_d = 5000;
+	ideal_d = 500;
 	max_d = 256;
 	max_m = 256;
 #elif 1 // CSR_VGA_OUT0_DRIVER_CLOCKING_MMCM_RESET_ADDR
 	// Artix 7
-	ideal_d = 10000;
+	ideal_d = 1000;
 	max_d = 128;
 	max_m = 128;
 #else
@@ -802,6 +802,7 @@ void processor_set_hdmi_out1_source(int source) {
 }
 
 void processor_set_vga_out0_source(int source) {
+	wprintf("processor_set_vga_out0_source(%d)\n", source);
 	processor_vga_out0_source = source;
 }
 
