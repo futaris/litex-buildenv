@@ -59,12 +59,10 @@ class VideoSoC(BaseSoC):
             self.vga_out0.driver.clocking.cd_pix.clk)
 
         self.platform.add_period_constraint(self.vga_out0.driver.clocking.cd_pix.clk, period_ns(1*pix_freq))
-        self.platform.add_period_constraint(self.vga_out0.driver.clocking.cd_pix5x.clk, period_ns(5*pix_freq))
 
         self.platform.add_false_path_constraints(
             self.crg.cd_sys.clk,
-            self.vga_out0.driver.clocking.cd_pix.clk,
-            self.vga_out0.driver.clocking.cd_pix5x.clk)
+            self.vga_out0.driver.clocking.cd_pix.clk)
 
         
 class VideoSoCDebug(VideoSoC):
@@ -80,17 +78,8 @@ class VideoSoCDebug(VideoSoC):
 
         # leds
         #pix_counter = Signal(32)
-        #self.sync.hdmi_in0_pix += pix_counter.eq(pix_counter + 1)
+        #self.sync.vga_out0_pix += pix_counter.eq(pix_counter + 1)
         #self.comb += platform.request("user_led", 0).eq(pix_counter[26])
-
-        #pix1p25x_counter = Signal(32)
-        #self.sync.pix1p25x += pix1p25x_counter.eq(pix1p25x_counter + 1)
-        #self.comb += platform.request("user_led", 1).eq(pix1p25x_counter[26])
-
-        #pix5x_counter = Signal(32)
-        #self.sync.hdmi_in0_pix5x += pix5x_counter.eq(pix5x_counter + 1)
-        #self.comb += platform.request("user_led", 2).eq(pix5x_counter[26])
-
 
     def do_exit(self, vns):
         self.analyzer.export_csv(vns, "test/analyzer.csv")
