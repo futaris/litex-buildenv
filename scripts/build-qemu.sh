@@ -33,9 +33,26 @@ make info
 set -x
 set -e
 
-QEMU_REMOTE="${QEMU_REMOTE:-https://github.com/timvideos/qemu-litex.git}"
-QEMU_BRANCH=${QEMU_BRANCH:-master}
-QEMU_REMOTE_NAME=timvideos-qemu-litex
+if [ "$CPU" != "lm32" -a "$CPU" != "or1k" ]; then
+	QEMU_REMOTE="${QEMU_REMOTE:-https://github.com/timvideos/qemu-litex.git}"
+	QEMU_BRANCH=${QEMU_BRANCH:-master}
+	QEMU_REMOTE_NAME=timvideos-qemu-litex
+fi
+# Can probably add picorv32 too
+# if [ $"CPU" != "" -a "$CPU" != "vexriscv" ]; then
+if [ "$CPU" != "vexriscv" ]; then
+#	QEMU_REMOTE="${QEMU_REMOTE:-https://github.com/qemu/qemu}"
+#	QEMU_BRANCH=${QEMU_BRANCH:-v4.0.0}
+#	QEMU_REMOTE_NAME=qemu-upstream
+	QEMU_REMOTE="${QEMU_REMOTE:-https://github.com/futaris/qemu}"
+	QEMU_BRANCH=${QEMU_BRANCH:-v4.0.0-litex}
+	QEMU_REMOTE_NAME=qemu-upstream-litex
+fi
+if [ -z "$QEMU_REMOTE"]; then
+	echo "Unsupported cpu $CPU in QEMU"
+	echo "modify build-qemu.sh and add QEMU_REMOTE, QEMU_BRANCH and QEMU_REMOTE_NAME"
+	exit 1
+fi
 QEMU_REMOTE_BIT=$(echo $QEMU_REMOTE | sed -e's-^.*://--' -e's/.git$//')
 QEMU_SRC_DIR=$TOP_DIR/third_party/qemu-litex
 if [ ! -d "$QEMU_SRC_DIR" ]; then
@@ -44,6 +61,13 @@ if [ ! -d "$QEMU_SRC_DIR" ]; then
 		git clone ${QEMU_REMOTE} qemu-litex
 		cd $QEMU_SRC_DIR
 		git submodule update --init dtc
+		# qemu >= 4.0.0
+		if [ "$CPU" != "vexriscv" ]; then
+			git submodule update --init capstone
+			git submodule update --init ui/keycodemapdb
+			git submodule update --init tests/fp/berkeley-softfloat-3
+			git submodule update --init tests/fp/berkeley-testfloat-3
+		fi
 	)
 fi
 
@@ -75,6 +99,10 @@ case $CPU in
 		;;
 	or1k)
 		QEMU_CPU=or1k
+		;;
+#	picorv32)
+	vexriscv)
+		QEMU_CPU=riscv32
 		;;
 	*)
 		echo "CPU $CPU isn't supported at the moment."
