@@ -55,11 +55,23 @@ fi
 # Get linux-litex is needed
 LINUX_SRC="$TOP_DIR/third_party/linux"
 LINUX_LOCAL="$LINUX_GITLOCAL" # Local place to clone from
-LINUX_REMOTE="${LINUX_REMOTE:-https://github.com/timvideos/linux-litex.git}"
+
+if [ ${CPU} = or1k ]; then
+	LINUX_REMOTE="${LINUX_REMOTE:-https://github.com/timvideos/linux-litex.git}"
+	LINUX_BRANCH=${LINUX_BRANCH:-master-litex}
+fi
+
+if [ ${CPU} = vexriscv ]; then
+	LINUX_REMOTE="${LINUX_REMOTE:-https://github.com/torvalds/linux.git}"
+	# LINUX_REMOTE="${LINUX_REMOTE:-https://github.com/timvideos/linux.git}"
+	# LINUX_REMOTE="${LINUX_REMOTE:-https://github.com/futaris/linux.git}"
+	LINUX_BRANCH=${LINUX_BRANCH:-v5.0.10}
+fi
+
 LINUX_REMOTE_NAME=timvideos-linux-litex
 LINUX_REMOTE_BIT=$(echo $LINUX_REMOTE | sed -e's-^.*://--' -e's/.git$//')
 LINUX_CLONE_FROM="${LINUX_LOCAL:-$LINUX_REMOTE}"
-LINUX_BRANCH=${LINUX_BRANCH:-master-litex}
+
 (
 	# Download the Linux source for the first time
 	if [ ! -d "$LINUX_SRC" ]; then
@@ -84,7 +96,7 @@ LINUX_BRANCH=${LINUX_BRANCH:-master-litex}
 	# Get any new data
 	git fetch $CURRENT_LINUX_REMOTE_NAME
 
-	# Checkout or1k-linux branch it not already on it
+	# Checkout the branch it not already on it
 	if [ "$(git rev-parse --abbrev-ref HEAD)" != "$LINUX_BRANCH" ]; then
 		if git rev-parse --abbrev-ref $LINUX_BRANCH > /dev/null 2>&1; then
 			git checkout $LINUX_BRANCH
@@ -132,9 +144,11 @@ LITEX_DT_BRANCH=master
 
 # Build linux-litex
 if [ ${CPU_ARCH} = or1k ]; then
+	# or1k
 	export ARCH=openrisc
 else
-	export ARCH=rv32
+	# vexriscv
+	export ARCH=riscv
 fi
 export CROSS_COMPILE=${CPU_ARCH}-elf-newlib-
 TARGET_LINUX_BUILD_DIR=$(dirname $TOP_DIR/$FIRMWARE_FILEBASE)
@@ -144,14 +158,52 @@ TARGET_LINUX_BUILD_DIR=$(dirname $TOP_DIR/$FIRMWARE_FILEBASE)
 	mkdir -p $TARGET_LINUX_BUILD_DIR
 	(
 		cd $TARGET_LINUX_BUILD_DIR
-		# To rebuild, use https://ozlabs.org/~joel/litex_or1k_defconfig
-		ROOTFS=openrisc-rootfs.cpio.gz
+		# To rebuild, for or1k use https://ozlabs.org/~joel/litex_or1k_defconfig
+		# To rebuild, for vexriscv use
+		# https://raw.githubusercontent.com/enjoy-digital/linux-on-litex-vexriscv/master/buildroot/configs/litex_vexriscv_defconfig
+		ROOTFS_CPIO=${ARCH}-rootfs.cpio
+		ROOTFS=${ARCH}-rootfs.cpio.gz
 		if [ ! -e $ROOTFS ]; then
-			wget "https://ozlabs.org/~joel/${ARCH}-rootfs.cpio.gz" -O $ROOTFS
+			if [ ${CPU_ARCH} = or1k ]; then
+				# or1k
+				wget "https://ozlabs.org/~joel/${ARCH}-rootfs.cpio.gz" -O $ROOTFS
+			else
+				# vexriscv
+
+				# wget "https://raw.githubusercontent.com/enjoy-digital/linux-on-litex-vexriscv/master/binaries/rootfs.cpio" -O $ROOTFS_CPIO
+				# gzip $ROOTFS_CPIO
+
+				# wget "https://raw.githubusercontent.com/futaris/buildroot-rootfs/master/${ARCH}-rootfs.cpio.gz" -O $ROOTFS
+				# wget "https://www.github.com/futaris/buildroot-rootfs/${ARCH}-rootfs.cpio.gz" -O $ROOTFS
+
+		        echo "rootfs missing"
+				# exit 1
+			fi
 		fi
 	)
-	make O="$TARGET_LINUX_BUILD_DIR" litex_defconfig
+
+	if [ ${CPU_ARCH} = or1k ]; then
+		# or1k - litex_or1k_defconfig?
+		make O="$TARGET_LINUX_BUILD_DIR" litex_defconfig
+	else
+		# vexriscv
+		make O="$TARGET_LINUX_BUILD_DIR" defconfig
+		cp ~/litex_vexriscv_defconfig $TARGET_LINUX_BUILD_DIR/.config
+
+		# exit 1
+		# make O="$TARGET_LINUX_BUILD_DIR" litex_vexriscv_defconfig
+	fi
+
 	time make O="$TARGET_LINUX_BUILD_DIR" -j$JOBS
-	ls -l $TARGET_LINUX_BUILD_DIR/arch/openrisc/boot/vmlinux.bin
-	ln -sf $TARGET_LINUX_BUILD_DIR/arch/openrisc/boot/vmlinux.bin $TOP_DIR/$FIRMWARE_FILEBASE.bin
+
+	if [ ${CPU_ARCH} = or1k ]; then
+		# or1k
+		ls -l $TARGET_LINUX_BUILD_DIR/arch/$ARCH/boot/vmlinux.bin
+		ln -sf $TARGET_LINUX_BUILD_DIR/arch/$ARCH/boot/vmlinux.bin $TOP_DIR/$FIRMWARE_FILEBASE.bin
+	else
+		# vexriscv
+		ls -l $TARGET_LINUX_BUILD_DIR/arch/$ARCH/boot/Image
+		ln -sf $TARGET_LINUX_BUILD_DIR/arch/$ARCH/boot/Image $TOP_DIR/$FIRMWARE_FILEBASE.bin
+	fi
+
 )
